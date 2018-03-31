@@ -1,4 +1,5 @@
 import socket
+import threading
 import sys
 import termios
 import tty
@@ -82,6 +83,17 @@ class SDSYclient(object):
         self.__registerSock.close()
 
 
+    def __sendMessage(self):
+        while True:
+            message = sys.stdin.readline()
+            self.__loginSock(message.encode('utf-8'))
+
+
+    def __recvMessage(self):
+        while True:
+            print(self.__loginSock.recv(1024).decode('utf-8'))
+
+
     def __login(self):
         self.__loginSock.connect(('127.0.0.1', 1227))
         print(self.__loginSock.recv(1024).decode('utf-8'))
@@ -91,7 +103,26 @@ class SDSYclient(object):
         self.__loginSock.send(passwd.encode('utf-8'))
         ret = self.__loginSock.recv(1024).decode('utf-8')
         if ret == 'Welcome!\nWhat do you want to do?\n(Link, Who, Logout)':
-            message = sys.stdin.readline()
+            # recvthread = threading.Thread(target=__recvMessage, args=())
+            # recvthread.start()
+            while True:
+                message = sys.stdin.readline()
+                self.__loginSock.send(message.encode('utf-8'))
+                if self.__loginSock.recv(1024).decode('utf-8') == 'Who':
+                    message = sys.stdin.readline()
+                    self.__loginSock.send(message.encode('utf-8'))
+                    if self.__loginSock.recv(1024).decode('utf-8') == 'Link successfully!':
+                        recvthread = threading.Thread(target=self.__recvMessage, args=())
+                        sendthread = threading.Thread(target=self.__sendMessage, args=())
+                        recvthread.start()
+                        sendthread.start()
+                        recvthread.join()
+                        sendthread.join()
+                    else:
+                        continue
+                else:
+
+
                 
 
 
