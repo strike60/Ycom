@@ -118,25 +118,42 @@ class Yserver(object):
 
     def __Authentication(self):
         communication_sock, addr = self.__loginListenSock.accept()
-        t = threading.Thread(target=self.__proxy, args=(communication_sock, ))
+        t = threading.Thread(target=self.__Ypoxy, args=(communication_sock, ))
         t.start()
 
-    def __proxy(self, communication_sock):
+    def __Ypoxy(self, communication_sock):
         communication_sock.send('Who are you?'.encode('utf-8'))
         username = communication_sock.recv(1024).decode('utf-8')
         communication_sock.send('Password:'.encode('utf-8'))
         passwd = communication_sock.recv(1024).decode('utf-8')
         if self.__utilsAuthenticate(username, passwd):
             self.__onlineList.append((username, communication_sock))
-            communication_sock.send('Welcome!\nThe online users:{}\nThe person you want to talk:'.format(
-                self.__utilsListOnlineUsers()).encode('utf-8'))
-            name = communication_sock.recv(1024).decode('utf-8')
-            communication_sock2 = self.__utilsLink(name)
-            if communication_sock2:
-                communication_sock.send('Link successfully!'.encode('utf-8'))
-            else:
-                communication_sock.send('{} is offline'.format(name))
-
+            while True:
+                communication_sock.send('Welcome!\nWhat do you want to do?\n(Link, Who, Logout)'.encode('utf-8'))
+                # User's option
+                option = communication_sock.recv(1024).decode('utf-8')
+                if option == 'Who':
+                    communication_sock.send('The online users:{}\n'.format(self.__utilsListOnlineUsers()).encode('utf-8'))
+                    continue
+                if option == 'Link':
+                    communication_sock.send('Who?'.encode('utf-8'))
+                    name = communication_sock.recv(1024).decode('utf-8')
+                    destiny_sock = self.__utilsLink(name)
+                    if destiny_sock:
+                        communication_sock.send('Link successfully!'.encode('utf-8'))
+                        poxyt = threading.Thread()
+                        poxyt.start()
+                        poxyt.join()
+                        continue
+                    else:
+                        communication_sock.send('{} is offline'.format(name))
+                        continue
+                if option == 'Logout':
+                    communication_sock.send('Logout successfully!'.encode('utf-8'))
+                    break
+                else:
+                    communication_sock.send('Wrong option!\n'.encode('utf-8'))
+                    continue
         else:
             communication_sock.send('Wrong username or password!'.encode('utf-8'))
         self.__onlineList.remove((username, communication_sock))
