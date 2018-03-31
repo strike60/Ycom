@@ -93,14 +93,16 @@ class Yserver(object):
     def __recordRegistInfo(self):
         Registsock, _ = self.__registrationListenSock.accept()
         try:
-            message = Registsock.recv(1024).decode('utf-8')
-            name, passwd, email, gender = message.split(';')
-            if not self.__utilsFindUser(name):
-                self.__registList.append(User(name, passwd, email, gender))
-                Registsock.send('Regist successfully.'.encode('utf-8'))
-            else:
-                Registsock.send(
-                    'The name has been used.Please change the name.'.encode('utf-8'))
+            while True:
+                message = Registsock.recv(1024).decode('utf-8')
+                name, passwd, email, gender = message.split(';')
+                if not self.__utilsFindUser(name):
+                    self.__registList.append(User(name, passwd, email, gender))
+                    Registsock.send('Regist successfully.'.encode('utf-8'))
+                    break
+                else:
+                    Registsock.send(
+                        'The name has been used.Please change the name.'.encode('utf-8'))
         except:
             Registsock.send('Can not regist successfully.'.encode('utf-8'))
         finally:
@@ -118,10 +120,10 @@ class Yserver(object):
 
     def __Authentication(self):
         communication_sock, addr = self.__loginListenSock.accept()
-        t = threading.Thread(target=self.__Ypoxy, args=(communication_sock, ))
+        t = threading.Thread(target=self.__iteraction, args=(communication_sock, ))
         t.start()
 
-    def __Ypoxy(self, communication_sock):
+    def __iteraction(self, communication_sock):
         communication_sock.send('Who are you?'.encode('utf-8'))
         username = communication_sock.recv(1024).decode('utf-8')
         communication_sock.send('Password:'.encode('utf-8'))
@@ -141,7 +143,7 @@ class Yserver(object):
                     destiny_sock = self.__utilsLink(name)
                     if destiny_sock:
                         communication_sock.send('Link successfully!'.encode('utf-8'))
-                        poxyt = threading.Thread()
+                        poxyt = threading.Thread(target=self.__Yproxy, args=(communication_sock, destiny_sock))
                         poxyt.start()
                         poxyt.join()
                         continue
@@ -158,6 +160,16 @@ class Yserver(object):
             communication_sock.send('Wrong username or password!'.encode('utf-8'))
         self.__onlineList.remove((username, communication_sock))
         communication_sock.close()
+
+
+    def __Yproxy(self, hostsock, guestsock):
+        while True:
+            message = hostsock.recv(1024).decode('utf-8')
+            if message != 'sorrY':
+                guestsock.send(message.encode('utf-8'))
+            else:
+                break
+
 
     def __Authenticate(self):
         while True:
