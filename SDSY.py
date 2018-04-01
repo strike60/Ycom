@@ -1,8 +1,10 @@
 import socket
 import threading
 import sys
+import time
 import termios
 import tty
+
 
 
 def getch():
@@ -103,7 +105,11 @@ class SDSYclient(object):
             if self.__logOut:
                 break
             recvmessage = self.__loginSock.recv(1024).decode('utf-8')
-            print(recvmessage)
+            if recvmessage.strip() == 'Welcome!\nWhat do you want to do?\n(Link, Who, Logout)':
+                self.__logSuccess = True
+            if recvmessage.strip() == 'LinkOk':
+                self.__linkSuccess = True
+            print(recvmessage.strip())
 
 
     def __login(self):
@@ -114,34 +120,32 @@ class SDSYclient(object):
         print(self.__loginSock.recv(1024).decode('utf-8'))
         passwd = sys.stdin.readline()
         self.__loginSock.send(passwd.encode('utf-8'))
+        recvthread = threading.Thread(target=self.__recvMessage, args=())
+        recvthread.start()
+        time.sleep(1)
         while True:
-            recvthread = threading.Thread(target=self.__recvMessage, args=())
-            recvthread.start()
-            if True:
+            if self.__logSuccess:
                 message = sys.stdin.readline()
                 self.__loginSock.send(message.encode('utf-8'))
                 if message.strip()  == 'Link':
                     message = sys.stdin.readline()
                     self.__loginSock.send(message.encode('utf-8'))
-                    print('run here')
-                    sendthread = threading.Thread(target=self.__sendMessage, args=())
-                    sendthread.start()
-                    sendthread.join()
+                    time.sleep(1)
+                    if self.__linkSuccess:
+                        sendthread = threading.Thread(target=self.__sendMessage, args=())
+                        sendthread.start()
+                        sendthread.join()
+                    self.__linkSuccess = False
                     continue
                 elif message.strip() == 'Who':
                     continue
                 elif message.strip() == 'Logout':
                     self.__logOut = True
+                    self.__logSuccess = False
                     break
             else:
-                self.__loginSock.close()
                 break
 
-
-                
-
-
-        
 
     def run(self):
         while True:
@@ -153,10 +157,7 @@ class SDSYclient(object):
                 break
             else:
                 pass
-
         self.__login()
-        
-
 if __name__ == '__main__':
     client = SDSYclient()
     client.run()

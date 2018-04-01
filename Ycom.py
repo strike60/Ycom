@@ -142,13 +142,13 @@ class Yserver(object):
                     name = communication_sock.recv(1024).decode('utf-8')
                     destiny_sock = self.__utilsLink(name)
                     if destiny_sock:
-                        communication_sock.send('Link successfully!'.encode('utf-8'))
+                        communication_sock.send('LinkOk'.encode('utf-8'))
                         poxyt = threading.Thread(target=self.__Yproxy, args=(communication_sock, destiny_sock))
                         poxyt.start()
                         poxyt.join()
                         continue
                     else:
-                        communication_sock.send('{} is offline'.format(name))
+                        communication_sock.send('{} is offline'.format(name).encode('utf-8'))
                         continue
                 if option.strip() == 'Logout':
                     communication_sock.send('Logout successfully!'.encode('utf-8'))
