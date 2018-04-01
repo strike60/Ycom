@@ -134,10 +134,10 @@ class Yserver(object):
                 communication_sock.send('Welcome!\nWhat do you want to do?\n(Link, Who, Logout)'.encode('utf-8'))
                 # User's option
                 option = communication_sock.recv(1024).decode('utf-8')
-                if option == 'Who':
+                if option.strip() == 'Who':
                     communication_sock.send('The online users:{}\n'.format(self.__utilsListOnlineUsers()).encode('utf-8'))
                     continue
-                if option == 'Link':
+                if option.strip() == 'Link':
                     communication_sock.send('Who?'.encode('utf-8'))
                     name = communication_sock.recv(1024).decode('utf-8')
                     destiny_sock = self.__utilsLink(name)
@@ -150,16 +150,18 @@ class Yserver(object):
                     else:
                         communication_sock.send('{} is offline'.format(name))
                         continue
-                if option == 'Logout':
+                if option.strip() == 'Logout':
                     communication_sock.send('Logout successfully!'.encode('utf-8'))
+                    communication_sock.close()
                     break
                 else:
                     communication_sock.send('Wrong option!\n'.encode('utf-8'))
                     continue
         else:
             communication_sock.send('Wrong username or password!'.encode('utf-8'))
+            communication_sock.close()
         self.__onlineList.remove((username, communication_sock))
-        communication_sock.close()
+
 
 
     def __Yproxy(self, hostsock, guestsock):
