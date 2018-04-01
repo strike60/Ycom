@@ -152,6 +152,7 @@ class Yserver(object):
                         continue
                 if option.strip() == 'Logout':
                     communication_sock.send('Logout successfully!'.encode('utf-8'))
+                    self.__onlineList.remove((username, communication_sock))
                     communication_sock.close()
                     break
                 else:
@@ -160,7 +161,7 @@ class Yserver(object):
         else:
             communication_sock.send('Wrong username or password!'.encode('utf-8'))
             communication_sock.close()
-        self.__onlineList.remove((username, communication_sock))
+        
 
 
 
@@ -168,7 +169,10 @@ class Yserver(object):
         while True:
             message = hostsock.recv(1024).decode('utf-8')
             if message != 'sorrY':
-                guestsock.send(message.encode('utf-8'))
+                try:
+                    guestsock.send(message.encode('utf-8'))
+                except:
+                    hostsock.send('Opposite side is Offline, input \'sorrY\' to exit the session.'.encode('utf-8'))
             else:
                 break
 

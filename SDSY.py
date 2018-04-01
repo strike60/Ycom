@@ -2,38 +2,37 @@ import socket
 import threading
 import sys
 import time
-import termios
-import tty
+import getpass
 
 
 
-def getch():
-    fd = sys.stdin.fileno()
-    old_settings = termios.tcgetattr(fd)
-    try:
-        tty.setraw(sys.stdin.fileno())
-        ch = sys.stdin.read(1)
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-    return ch
+# def getch():
+#     fd = sys.stdin.fileno()
+#     old_settings = termios.tcgetattr(fd)
+#     try:
+#         tty.setraw(sys.stdin.fileno())
+#         ch = sys.stdin.read(1)
+#     finally:
+#         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+#     return ch
 
 
-def getpass(maskchar="*"):
-    password = ""
-    while True:
-        ch = getch()
-        if ch == "\r" or ch == "\n":
-            return password
-        elif ch == "\b" or ord(ch) == 127:
-            if len(password) > 0:
-                sys.stdout.write("\b \b")
-                sys.stdout.flush()
-                password = password[:-1]
-        else:
-            if maskchar:
-                sys.stdout.write(maskchar)
-                sys.stdout.flush()
-            password += ch
+# def getpass(maskchar="*"):
+#     password = ""
+#     while True:
+#         ch = getch()
+#         if ch == "\r" or ch == "\n":
+#             return password
+#         elif ch == "\b" or ord(ch) == 127:
+#             if len(password) > 0:
+#                 sys.stdout.write("\b \b")
+#                 sys.stdout.flush()
+#                 password = password[:-1]
+#         else:
+#             if maskchar:
+#                 sys.stdout.write(maskchar)
+#                 sys.stdout.flush()
+#             password += ch
 
 
 class SDSYclient(object):
@@ -50,6 +49,7 @@ class SDSYclient(object):
         self.__logSuccess = False
         self.__linkSuccess = False
         self.__logOut = False
+        self.__linkerOffline = False
 
     def Register(self):
         self.__registerSock.connect(('23.83.246.101', 31415))
@@ -61,22 +61,17 @@ class SDSYclient(object):
         print('openssl.Do not use the real information!')
         print('--------------------------------------------------------------------')
         while True:
-            print('What\'s your name?')
-            self.__name = sys.stdin.readline()
+            self.__name = input('What\'s your name?:')
             while True:
-                print('Password:')
-                self.__passwd = sys.stdin.readline()
-                print('Password again:')
-                passwd2 = sys.stdin.readline()
+                self.__passwd = getpass.getpass('Enter the password:')
+                passwd2 = getpass.getpass('Enter the password again:')
                 if self.__passwd == passwd2:
                     break
                 else:
                     print('Retry!')
                     pass
-            print('Email:')
-            self.__email = sys.stdin.readline()
-            print('Male or female?')
-            self.__gender = sys.stdin.readline()
+            self.__email = input('Email: ')
+            self.__gender = input('Gender: ')
             self.__registerSock.send(('%s;%s;%s;%s' % (
                 self.__name, self.__passwd, self.__email, self.__gender)).encode('utf-8'))
             ret = self.__registerSock.recv(1024).decode('utf-8')
@@ -89,10 +84,13 @@ class SDSYclient(object):
 
 
     def __sendMessage(self):
+        print('(In session, you can input \'sorrY\' to exit the session.)\n')
         while True:
+            if self.__linkerOffline:
+                break
             if self.__logOut:
                 break
-            message = input('>>>')
+            message = input()
             if message.strip() == 'sorrY':
                 self.__loginSock.send((message).encode('utf-8'))
                 print('Exit the session successfully.')
@@ -109,31 +107,34 @@ class SDSYclient(object):
                 self.__logSuccess = True
             if recvmessage.strip() == 'LinkOk':
                 self.__linkSuccess = True
+            if recvmessage.strip() == 'Opposite side is Offline, input \'sorrY\' to exit the session.':
+                self.__linkerOffline = True
             print(recvmessage.strip())
 
 
     def __login(self):
         self.__loginSock.connect(('23.83.246.101', 1227))
         print(self.__loginSock.recv(1024).decode('utf-8'))
-        self.__name = sys.stdin.readline()
+        self.__name = input()
         self.__loginSock.send(self.__name.encode('utf-8'))
         print(self.__loginSock.recv(1024).decode('utf-8'))
-        self.__passwd = sys.stdin.readline()
+        self.__passwd = getpass.getpass('')
         self.__loginSock.send(self.__passwd.encode('utf-8'))
         recvthread = threading.Thread(target=self.__recvMessage, args=())
         recvthread.start()
         print('loading...')
-        time.sleep(3)
+        time.sleep(5)
         while True:
             if self.__logSuccess:
-                message = sys.stdin.readline()
+                message = input()
                 self.__loginSock.send(message.encode('utf-8'))
                 if message.strip()  == 'Link':
-                    message = sys.stdin.readline()
+                    message = input()
                     self.__loginSock.send(message.encode('utf-8'))
                     print('linking...')
                     time.sleep(3)
                     if self.__linkSuccess:
+                        self.__linkerOffline = False
                         sendthread = threading.Thread(target=self.__sendMessage, args=())
                         sendthread.start()
                         sendthread.join()
@@ -146,6 +147,9 @@ class SDSYclient(object):
                     self.__logSuccess = False
                     break
             else:
+                self.__logOut = True
+                self.__loginSock.close()
+                print('Exit!')
                 break
 
 
@@ -160,6 +164,8 @@ class SDSYclient(object):
             else:
                 pass
         self.__login()
+
+
 if __name__ == '__main__':
     client = SDSYclient()
     client.run()
