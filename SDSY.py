@@ -52,7 +52,7 @@ class SDSYclient(object):
         self.__logOut = False
 
     def Register(self):
-        self.__registerSock.connect(('127.0.0.1', 31415))
+        self.__registerSock.connect(('23.83.246.101', 31415))
         print('--------------------------------------------------------------------')
         print('The SDSY is the abbreviation of \'Strike,Do not Say sorrY\'.')
         print('The software is designed to encourage him to do what he wants to do!')
@@ -92,12 +92,12 @@ class SDSYclient(object):
         while True:
             if self.__logOut:
                 break
-            message = input('strike:')
+            message = input('>>>')
             if message.strip() == 'sorrY':
-                self.__loginSock.send(message.encode('utf-8'))
+                self.__loginSock.send((message).encode('utf-8'))
                 print('Exit the session successfully.')
                 break
-            self.__loginSock.send(message.encode('utf-8'))
+            self.__loginSock.send((self.__name.strip('\n')+ ':' + message).encode('utf-8'))
 
 
     def __recvMessage(self):
@@ -113,16 +113,17 @@ class SDSYclient(object):
 
 
     def __login(self):
-        self.__loginSock.connect(('127.0.0.1', 1227))
+        self.__loginSock.connect(('23.83.246.101', 1227))
         print(self.__loginSock.recv(1024).decode('utf-8'))
-        name = sys.stdin.readline()
-        self.__loginSock.send(name.encode('utf-8'))
+        self.__name = sys.stdin.readline()
+        self.__loginSock.send(self.__name.encode('utf-8'))
         print(self.__loginSock.recv(1024).decode('utf-8'))
-        passwd = sys.stdin.readline()
-        self.__loginSock.send(passwd.encode('utf-8'))
+        self.__passwd = sys.stdin.readline()
+        self.__loginSock.send(self.__passwd.encode('utf-8'))
         recvthread = threading.Thread(target=self.__recvMessage, args=())
         recvthread.start()
-        time.sleep(1)
+        print('loading...')
+        time.sleep(3)
         while True:
             if self.__logSuccess:
                 message = sys.stdin.readline()
@@ -130,7 +131,8 @@ class SDSYclient(object):
                 if message.strip()  == 'Link':
                     message = sys.stdin.readline()
                     self.__loginSock.send(message.encode('utf-8'))
-                    time.sleep(1)
+                    print('linking...')
+                    time.sleep(3)
                     if self.__linkSuccess:
                         sendthread = threading.Thread(target=self.__sendMessage, args=())
                         sendthread.start()

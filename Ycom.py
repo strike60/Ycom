@@ -75,7 +75,7 @@ class Yserver(object):
     def __utilsListOnlineUsers(self):
         userslist = ''
         for user in self.__onlineList:
-            userslist = userslist + user[0] + ';'
+            userslist = userslist + user[0].strip('\n') + ';'
         return userslist
 
     def __utilsLink(self, name):
@@ -86,7 +86,7 @@ class Yserver(object):
 
     # Registration
     def __openRegistration(self):
-        self.__registrationListenSock.bind(('127.0.0.1', 31415))
+        self.__registrationListenSock.bind((self.__ip, 31415))
         self.__registrationListenSock.listen(5)
         print('Open registration channel.')
 
@@ -114,7 +114,7 @@ class Yserver(object):
 
     # Authentication
     def __openAuthentication(self):
-        self.__loginListenSock.bind(('127.0.0.1', 1227))
+        self.__loginListenSock.bind((self.__ip, 1227))
         self.__loginListenSock.listen(5)
         print('Open authentication channel.')
 
@@ -148,7 +148,7 @@ class Yserver(object):
                         poxyt.join()
                         continue
                     else:
-                        communication_sock.send('{} is offline'.format(name).encode('utf-8'))
+                        communication_sock.send('{} is offline'.format(name.strip('\n')).encode('utf-8'))
                         continue
                 if option.strip() == 'Logout':
                     communication_sock.send('Logout successfully!'.encode('utf-8'))
